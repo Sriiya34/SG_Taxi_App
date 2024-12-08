@@ -1,4 +1,3 @@
-
 import streamlit as st
 import requests
 import folium
@@ -51,8 +50,8 @@ if data and "features" in data:
     HeatMap(taxi_locations, radius=10, blur=20, min_opacity=0.5).add_to(m)
     LayerControl().add_to(m)
 
-    # for location in taxi_locations:
-    #     folium.CircleMarker(location=location, radius=2, color='blue', fill=True).add_to(m)
+    for location in taxi_locations:
+         folium.CircleMarker(location=location, radius=2, color='blue', fill=True).add_to(m)
 
     # Display the map in Streamlit
     st_folium(m, width=800, height=500)
