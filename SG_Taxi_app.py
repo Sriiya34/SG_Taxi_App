@@ -3,13 +3,13 @@ import requests
 import folium
 from datetime import datetime, timezone, timedelta
 from streamlit_folium import st_folium
-from folium.plugins import HeatMap
 from folium import LayerControl
 
 # Title of the app
 st.title("Real-time Taxi Availability in Singapore")
 st.markdown("""
 This app retrieves and displays real-time taxi availability data from Data.gov.sg.
+
 Grid-based counting identifies high-density areas, visualized with colored rectangles and markers.
 """)
 
@@ -65,21 +65,21 @@ if data and "features" in data:
     # Creates the map centered on Singapore
     map_center = [1.3521, 103.8198]
     m = folium.Map(location=map_center, zoom_start=12)
-
-    # Visualize grid cells with density-based coloring
+   
+    # Grid-based rectangles layer
+    rectangle_layer = folium.FeatureGroup(name="Grid Rectangles")
     for (lat_idx, lon_idx), count in grid_counts.items():
         cell_lat = min_lat + lat_idx * grid_size
         cell_lon = min_lon + lon_idx * grid_size
 
         # Determine color based on density
-        if count > 20:  # High density
+        if count > 35:
             color = 'red'
-        elif count > 10:  # Medium density
+        elif count > 20:
             color = 'orange'
-        else:  # Low density
+        else:
             color = 'green'
 
-        # Add a rectangle to represent the grid cell
         folium.Rectangle(
             bounds=[
                 [cell_lat, cell_lon],
@@ -87,9 +87,24 @@ if data and "features" in data:
             ],
             color=color,
             fill=True,
-            fill_opacity=0.4,
+            fill_opacity=0.3,
+            weight=1,
             popup=f"Taxis: {count}"
-        ).add_to(m)
+        ).add_to(rectangle_layer)
+
+    rectangle_layer.add_to(m)
+    
+    # Markers layer
+    marker_layer = folium.FeatureGroup(name="High-Density Markers")
+    for (lat_idx, lon_idx), count in grid_counts.items():
+        if count > 25:  # Only for high-density areas
+            cell_lat = min_lat + lat_idx * grid_size
+            cell_lon = min_lon + lon_idx * grid_size
+            folium.Marker(
+                location=[cell_lat + grid_size / 2, cell_lon + grid_size / 2],
+                icon=folium.Icon(color='red', icon='info-sign'),
+                tooltip=f"High Density: {count} taxis"
+            ).add_to(marker_layer)
     
     #LayerControl to toggle layers
     LayerControl().add_to(m)
@@ -98,14 +113,15 @@ if data and "features" in data:
     st_folium(m, width=900, height=500)
 
     st.markdown("""
-    ### Grid-Based Density Explanation
-    
-        - **Red**: High-density areas with more than 20 taxis.
-        - **Orange**: Medium-density areas with 10 to 20 taxis.
-        - **Green**: Low-density areas with fewer than 10 taxis.
-    
-    Each grid cell represents a 0.01° x 0.01° area of the map.
-        """)
+    ### Explanation of Layers
+        Grid Rectangles: Colored rectangles show taxi density in each grid cell.
+            - Green: Low density (< 20 taxis)
+            - Orange: Medium density (> 20 taxis)
+            - Red: High density (> 35 taxis)
+        High-Density Markers: Markers highlight areas with very high taxi density.
+        
+        Each grid cell represents a 0.01° x 0.01° area of the map.
+            """)
 else:
     st.warning("No taxi data available at the moment.")
 
