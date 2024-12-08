@@ -9,12 +9,12 @@ from folium import LayerControl
 # Title of the app
 st.title("Real-time Taxi Availability in Singapore")
 st.markdown("""
-This app retrieves and displays real-time taxi availability data from Data.gov.sg. 
-Taxis are plotted on an interactive map using GeoJSON data. Areas with more taxis are shown with warmer colors.
+This app retrieves and displays real-time taxi availability data from Data.gov.sg.
+Grid-based counting identifies high-density areas, visualized with colored rectangles and markers.
 """)
 
 # Function to get taxi availability data from the real-time API
-@st.cache_data(ttl=60)  # Cache data for 60 seconds
+@st.cache_data(ttl=90)  # Cache data for 90 seconds
 def fetch_taxi_data():
     base_url = "https://api.data.gov.sg/v1/transport/taxi-availability"
     try:
@@ -26,6 +26,12 @@ def fetch_taxi_data():
         st.error(f"Error fetching data from the API: {e}")
         return None
 
+# Function to assign a taxi location to a grid cell
+def get_grid_cell(lat, lon, grid_size):
+    lat_idx = int((lat - min_lat) / grid_size)
+    lon_idx = int((lon - min_lon) / grid_size)
+    return (lat_idx, lon_idx)
+    
 # Fetch the taxi data
 data = fetch_taxi_data()
 
@@ -42,26 +48,64 @@ if data and "features" in data:
     coordinates = features[0]["geometry"]["coordinates"]
     taxi_locations = [[lat, lon] for lon, lat in coordinates]
 
+    # Define grid parameters
+    grid_size = 0.01  
+    min_lat, max_lat = 1.2, 1.5  # Approx. latitude bounds of Singapore
+    min_lon, max_lon = 103.6, 104.0  # Approx. longitude bounds of Singapore
+
+    grid_counts = {}
+
+    # Count taxis in each grid cell
+    for lat, lon in taxi_locations:
+        cell = get_grid_cell(lat, lon, grid_size)
+        if cell not in grid_counts:
+            grid_counts[cell] = 0
+        grid_counts[cell] += 1
+
     # Creates the map centered on Singapore
     map_center = [1.3521, 103.8198]
     m = folium.Map(location=map_center, zoom_start=12)
 
-    custom_gradient = {
-    0.0: 'blue',    # Low density
-    0.4: 'green',   # Medium-low density
-    0.7: 'yellow',  # Medium density
-    1.0: 'red'      # High density
-    }
+    # Visualize grid cells with density-based coloring
+    for (lat_idx, lon_idx), count in grid_counts.items():
+        cell_lat = min_lat + lat_idx * grid_size
+        cell_lon = min_lon + lon_idx * grid_size
 
-    # Add HeatMap layer
-    HeatMap(taxi_locations, radius=10, blur=20, min_opacity=0.5).add_to(m)
+        # Determine color based on density
+        if count > 20:  # High density
+            color = 'red'
+        elif count > 10:  # Medium density
+            color = 'orange'
+        else:  # Low density
+            color = 'green'
+
+        # Add a rectangle to represent the grid cell
+        folium.Rectangle(
+            bounds=[
+                [cell_lat, cell_lon],
+                [cell_lat + grid_size, cell_lon + grid_size],
+            ],
+            color=color,
+            fill=True,
+            fill_opacity=0.4,
+            popup=f"Taxis: {count}"
+        ).add_to(m)
+    
+    #LayerControl to toggle layers
     LayerControl().add_to(m)
 
-    #for location in taxi_locations:
-         #folium.CircleMarker(location=location, radius=2, color='blue', fill=True).add_to(m)
-
     # Display the map in Streamlit
-    st_folium(m, width=800, height=500)
+    st_folium(m, width=900, height=500)
+
+    st.markdown("""
+    ### Grid-Based Density Explanation
+    
+        - **Red**: High-density areas with more than 20 taxis.
+        - **Orange**: Medium-density areas with 10 to 20 taxis.
+        - **Green**: Low-density areas with fewer than 10 taxis.
+    
+    Each grid cell represents a 0.01° x 0.01° area of the map.
+        """)
 else:
     st.warning("No taxi data available at the moment.")
 
