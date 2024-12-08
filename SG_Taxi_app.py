@@ -46,12 +46,19 @@ if data and "features" in data:
     map_center = [1.3521, 103.8198]
     m = folium.Map(location=map_center, zoom_start=12)
 
+    custom_gradient = {
+    0.0: 'blue',    # Low density
+    0.4: 'green',   # Medium-low density
+    0.7: 'yellow',  # Medium density
+    1.0: 'red'      # High density
+    }
+
     # Add HeatMap layer
     HeatMap(taxi_locations, radius=10, blur=20, min_opacity=0.5).add_to(m)
     LayerControl().add_to(m)
 
-    for location in taxi_locations:
-         folium.CircleMarker(location=location, radius=2, color='blue', fill=True).add_to(m)
+    #for location in taxi_locations:
+         #folium.CircleMarker(location=location, radius=2, color='blue', fill=True).add_to(m)
 
     # Display the map in Streamlit
     st_folium(m, width=800, height=500)
