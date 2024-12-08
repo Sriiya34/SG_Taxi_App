@@ -119,9 +119,7 @@ if data and "features" in data:
     * Green: Low density (< 20 taxis)
     * Orange: Medium density (> 20 taxis)
     * Red: High density (> 35 taxis)
-            
-    High-Density Markers: Markers highlight areas with very high taxi density.
-    
+
     Each grid cell represents a 0.01° x 0.01° area of the map.
             """)
 else:
