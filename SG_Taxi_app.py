@@ -113,8 +113,7 @@ if data and "features" in data:
     st_folium(m, width=900, height=500)
 
     st.markdown("""
-    Explanation of Layers
-        
+
     Grid Rectangles: Colored rectangles show taxi density in each grid cell.
     * Green: Low density (< 20 taxis)
     * Orange: Medium density (> 20 taxis)
